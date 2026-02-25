@@ -7,7 +7,12 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="src/main.tsx"></script>
+    <!-- 
+      CORE FIX: Explicitly loading the React entry point.
+      Vite requires this script tag to bootstrap the application.
+      Without this, the #root div remains empty, resulting in a blank page.
+    -->
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
 
