@@ -262,6 +262,17 @@ const DayLogDisplay = ({ log, characters, isLatest }: DayLogDisplayProps) => {
 
   if (entries.length === 0) return null;
 
+  const findChar = (idOrName: string) => {
+    if (!idOrName) return null;
+    const idOrNameLower = idOrName.toLowerCase().trim();
+    return characters.find(c => 
+      c.id.toLowerCase() === idOrNameLower || 
+      c.name.toLowerCase().trim() === idOrNameLower ||
+      idOrNameLower.includes(c.name.toLowerCase().trim()) ||
+      c.name.toLowerCase().trim().includes(idOrNameLower)
+    );
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
@@ -331,11 +342,11 @@ const DayLogDisplay = ({ log, characters, isLatest }: DayLogDisplayProps) => {
           className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4"
         >
           {log.statusUpdates.map((update, j) => {
-            const char = characters.find(c => c.id === update.characterId);
+            const char = findChar(update.characterId);
             return (
               <div key={j} className={`text-[13px] p-2 border-2 ${update.isDead ? 'border-sci-red bg-sci-red/10 text-sci-red' : 'border-sci-cyan/20 bg-white/40 text-sci-cyan/80'} font-display font-bold flex items-center gap-2`}>
                 <Info className="w-3 h-3" />
-                {char?.name}: {update.status}
+                {char?.name || update.characterId}: {update.status}
               </div>
             );
           })}
@@ -349,11 +360,11 @@ const DayLogDisplay = ({ log, characters, isLatest }: DayLogDisplayProps) => {
           className="space-y-1 mt-2"
         >
           {log.skillUnlocks.map((unlock, idx) => {
-            const char = characters.find(c => c.id === unlock.characterId);
+            const char = findChar(unlock.characterId);
             return (
               <div key={idx} className="text-[13px] text-sci-green font-bold flex items-center gap-2">
                 <Zap className="w-3 h-3" />
-                {char?.name} 습득: {unlock.skillName} - {unlock.description}
+                {char?.name || unlock.characterId} 습득: {unlock.skillName} - {unlock.description}
               </div>
             );
           })}
@@ -733,6 +744,14 @@ export default function App() {
 
       const nextLog = await Promise.race([simulationPromise, timeoutPromise]) as DayLog;
       
+      // Update characters based on status updates in the NEW log
+      const charUpdatesAfterLog = updatedCharacters.map(c => {
+        const update = nextLog.statusUpdates.find(u => u.characterId === c.id || u.characterId === c.name);
+        if (update?.isDead) return { ...c, isDead: true, deathDay: nextLog.day };
+        return c;
+      });
+      setCharacters(charUpdatesAfterLog);
+
       if (nextLog.isDanger) {
         setActiveDanger(nextLog.dangerType || 'UNKNOWN THREAT');
         playWarningSound();
@@ -1019,7 +1038,7 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col overflow-y-auto custom-scrollbar p-8"
             >
-              <div className="max-w-7xl mx-auto w-full space-y-24">
+              <div className="max-w-[1600px] mx-auto w-full space-y-24">
                 <div className="flex justify-between items-end border-b border-sci-border pb-8">
                   <div className="space-y-2">
                     <p className="text-[10px] uppercase tracking-[0.4em] text-sci-cyan font-bold">Crew Manifest</p>
@@ -1097,7 +1116,7 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col overflow-y-auto custom-scrollbar p-8"
             >
-              <div className="max-w-7xl mx-auto w-full space-y-8">
+              <div className="max-w-[1600px] mx-auto w-full space-y-8">
                 <div className="flex justify-between items-end border-b border-sci-border pb-6">
                   <div className="space-y-1">
                     <p className="text-[10px] uppercase tracking-[0.4em] text-sci-cyan font-bold">Vessel Diagnostics</p>
@@ -1420,7 +1439,7 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col items-center justify-center p-4"
             >
-              <div className="w-full max-w-4xl space-y-24">
+              <div className="w-full max-w-[1400px] space-y-24">
                 <div className="flex flex-col items-center space-y-8">
                   <div className="relative p-12 w-full max-w-lg glass-panel">
                     <div className="corner-marker corner-tl" />
@@ -1519,7 +1538,7 @@ export default function App() {
               className="flex-1 p-6 flex flex-col md:flex-row gap-8 overflow-y-auto"
             >
               {/* Left: Form */}
-              <div className="w-full md:w-1/3 space-y-6">
+              <div className="w-full md:w-1/4 xl:w-1/5 space-y-6">
                 <div className="sci-border p-6 bg-sci-paper space-y-6">
                   <div className="flex items-center gap-2 border-b-2 border-sci-border pb-2">
                     <Dna className="text-sci-orange w-5 h-5" />
@@ -1657,7 +1676,7 @@ export default function App() {
                   </SciFiButton>
                 </div>
 
-                <div className="flex-1 sci-border bg-white/40 p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar content-start">
+                <div className="flex-1 sci-border bg-white/40 p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto custom-scrollbar content-start">
                   {characters.length === 0 ? (
                     <div className="col-span-full flex flex-col items-center justify-center opacity-20 py-20">
                       <User className="w-20 h-20 mb-4" />
@@ -1724,12 +1743,30 @@ export default function App() {
                 <div ref={logContainerRef} className="flex-1 sci-border bg-sci-paper p-6 overflow-y-auto custom-scrollbar flex flex-col gap-8">
                   {isSimulating && (
                     <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex items-center gap-3 text-sci-cyan font-mono text-sm animate-pulse"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex flex-col items-center justify-center p-12 sci-border bg-sci-cyan/5 border-sci-cyan/30 space-y-6"
                     >
-                      <Activity className="w-4 h-4" />
-                      <span>GENERATING NEXT CYCLE DATA...</span>
+                      <div className="relative">
+                        <div className="w-16 h-16 border-2 border-sci-cyan border-t-transparent rounded-full animate-spin" />
+                        <Activity className="absolute inset-0 m-auto w-6 h-6 text-sci-cyan animate-pulse" />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <h3 className="text-lg font-display font-black text-sci-cyan uppercase tracking-widest animate-pulse">
+                          Accessing Neural Network
+                        </h3>
+                        <p className="text-[10px] font-mono text-sci-cyan/60 uppercase tracking-[0.3em]">
+                          Processing Day {currentDay + 1} // Syncing Variables
+                        </p>
+                      </div>
+                      <div className="w-full max-w-xs h-1 bg-sci-border rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: '100%' }}
+                          transition={{ duration: 15, ease: "linear" }}
+                          className="h-full bg-sci-cyan shadow-[0_0_10px_rgba(0,255,255,0.8)]"
+                        />
+                      </div>
                     </motion.div>
                   )}
                   {[...logs].reverse().map((log, i) => (
@@ -1744,7 +1781,7 @@ export default function App() {
               </div>
 
               {/* Right: Crew Status */}
-              <div className="w-full md:w-[350px] p-6 flex flex-col gap-6 bg-sci-paper overflow-y-auto custom-scrollbar border-l-2 border-sci-border">
+              <div className="w-full md:w-[350px] xl:w-[450px] p-6 flex flex-col gap-6 bg-sci-paper overflow-y-auto custom-scrollbar border-l-2 border-sci-border">
                 <div className="flex gap-2 mb-2">
                   <SciFiButton variant="cyan" className="flex-1 py-1 text-[10px]" onClick={saveGame}>Save Progress</SciFiButton>
                   <SciFiButton variant="orange" className="flex-1 py-1 text-[10px]" onClick={loadGame}>Load Progress</SciFiButton>

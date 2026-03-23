@@ -278,18 +278,29 @@ export async function generateDailySimulation(
       result = await generate();
     }
     
+    const findChar = (idOrName: string) => {
+      if (!idOrName) return null;
+      const idOrNameLower = idOrName.toLowerCase().trim();
+      return characters.find(c => 
+        c.id.toLowerCase() === idOrNameLower || 
+        c.name.toLowerCase().trim() === idOrNameLower ||
+        idOrNameLower.includes(c.name.toLowerCase().trim()) ||
+        c.name.toLowerCase().trim().includes(idOrNameLower)
+      );
+    };
+
     result.statusUpdates = (result.statusUpdates || []).map((update: any) => {
-      const char = characters.find(c => c.name === update.characterId || c.id === update.characterId);
+      const char = findChar(update.characterId);
       return { ...update, characterId: char?.id || update.characterId };
     });
 
     result.dialogues = (result.dialogues || []).map((d: any) => {
-      const char = characters.find(c => c.name === d.characterId || c.id === d.characterId);
+      const char = findChar(d.characterId);
       return { ...d, characterId: char?.id || d.characterId };
     });
 
     result.skillUnlocks = (result.skillUnlocks || []).map((s: any) => {
-      const char = characters.find(c => c.name === s.characterId || c.id === s.characterId);
+      const char = findChar(s.characterId);
       return { ...s, characterId: char?.id || s.characterId };
     });
 
