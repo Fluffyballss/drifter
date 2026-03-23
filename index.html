@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DRIFTER: Space Survival Simulator</title>
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        console.error("GLOBAL ERROR:", message, source, lineno, colno, error);
+        var root = document.getElementById('root');
+        if (root) {
+          root.innerHTML = '<div style="color: #ff4444; padding: 20px; background: #1a1a1a; font-family: monospace; border: 2px solid #ff4444;">' +
+            '<h1>CRITICAL LOAD ERROR</h1>' +
+            '<p>The application failed to load. This might be due to a script error or a missing file.</p>' +
+            '<pre style="background: #000; padding: 10px; border: 1px solid #333;">' + message + '</pre>' +
+            '<p style="color: #888; font-size: 0.8em;">Check the console for more details.</p>' +
+            '</div>';
+        }
+      };
+      window.onunhandledrejection = function(event) {
+        console.error("UNHANDLED REJECTION:", event.reason);
+      };
+    </script>
   </head>
   <body>
     <div id="root"></div>
